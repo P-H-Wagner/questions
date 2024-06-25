@@ -35,17 +35,17 @@
 #include "RecoVertex/KinematicFitPrimitives/interface/RefCountedKinematicTree.h"
 #include "RecoVertex/KinematicFitPrimitives/interface/Matrices.h" 
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h" 
-
 #include "DataFormats/PatCandidates/interface/Muon.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
 #include "DataFormats/VertexReco/interface/VertexFwd.h"
+
 #include "DataFormats/PatCandidates/interface/PackedCandidate.h" // for the tracks!
 #include "FWCore/Framework/interface/MakerMacros.h"
 
 #include "KinVtxFitter.h"   // 
 #include "helper.h"         // helper functions
 #include "TLorentzVector.h" // use this instead 
-#include "TVector3.h" // for boost vector
+#include "TVector3.h"       // for boost vector
 
 #include "FWCore/Common/interface/TriggerNames.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
@@ -65,7 +65,6 @@ using namespace std;
 class BsToDsPhiKKPiMuBuilder : public edm::global::EDProducer<> {
 public:
 
-  //define collections which dont exist by default  
   //constructor
   explicit BsToDsPhiKKPiMuBuilder(const edm::ParameterSet&);
   //destructor
@@ -84,10 +83,9 @@ public:
 
 private:
  
-  // muon selection
+  // for the trigger (muon)
   const StringCutObjectSelector<pat::Muon> muSelection_;
 
-  //define tokens to access data later
   const edm::InputTag muonTag;
   const edm::EDGetTokenT<std::vector<pat::Muon>> muonSrc_;
 
@@ -103,7 +101,6 @@ private:
   const edm::InputTag vertexSrcTag;
   const edm::EDGetTokenT<reco::VertexCollection> vertexSrc_;
 
-  //the maximal dR you allow between pat muon and trigger muon candidate
   const string trgFilterLabel_;
   const string hlt_7_4_p0_;
   const string hlt_7_4_p1_;
@@ -116,9 +113,8 @@ private:
   //Bfield
   OAEParametrizedMagneticField *paramField = new OAEParametrizedMagneticField("3_8T");
 
-  //cuts 
+  //for the hadronic tracks 
   const StringCutObjectSelector<pat::PackedCandidate> hadSelection_; // cut on hadrons
-
   const double maxdRHadMuon_;
   const double mindRHadMuon_;
   const double maxdzDiffHadMuon_; 
@@ -141,19 +137,10 @@ private:
   const double muMassSigma_;
   const double bsMass_;
   const double isoCone_;
-  //tokens to access data later
-  //edm::Input tag can not be directly initialized inside the construcor! Why did it work fro Trigger.cc??
-  //anyway ... 
 
   const edm::InputTag srcTag;
   const edm::EDGetTokenT<pat::PackedCandidateCollection> src_;
 
-  //for the muons
-
-  const edm::InputTag trgMuonTag;
-  const edm::EDGetTokenT<pat::MuonCollection> trgMuons_;
-
-  // vertices
   const edm::InputTag primaryVtxTag;
   const edm::EDGetTokenT<reco::VertexCollection> primaryVtx_;
 
@@ -223,9 +210,6 @@ BsToDsPhiKKPiMuBuilder::BsToDsPhiKKPiMuBuilder(const edm::ParameterSet& iConfig)
     srcTag(iConfig.getParameter<edm::InputTag>("pfCand")),
     src_(consumes<pat::PackedCandidateCollection>(srcTag)), 
 
-    trgMuonTag(iConfig.getParameter<edm::InputTag>("muCand")),
-    trgMuons_(consumes<pat::MuonCollection>(trgMuonTag)), 
-
     primaryVtxTag(iConfig.getParameter<edm::InputTag>("pvCand")),
     primaryVtx_(consumes<reco::VertexCollection>(primaryVtxTag)),
 
@@ -269,10 +253,6 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
   edm::Handle<pat::PackedCandidateCollection> pcand;
   iEvent.getByToken(src_, pcand);
  
- 
-  edm::Handle<pat::MuonCollection> trgMuons;
-  iEvent.getByToken(trgMuons_,trgMuons);
- 
   edm::Handle<reco::VertexCollection> primaryVtx;
   iEvent.getByToken(primaryVtx_,primaryVtx);
 
@@ -291,22 +271,6 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
   unsigned int index_7_4_p2      = names.triggerIndex(hlt_7_4_p2_);
   unsigned int index_7_4_p3      = names.triggerIndex(hlt_7_4_p3_);
   unsigned int index_7_4_p4      = names.triggerIndex(hlt_7_4_p4_);
- 
-  // full lumi
-  //unsigned int index_8_3      = names.triggerIndex("HLT_Mu8_IP3"); 
-  //unsigned int index_8_5      = names.triggerIndex("HLT_Mu8_IP5");
-  //unsigned int index_8_6      = names.triggerIndex("HLT_Mu8_IP6");
-  //unsigned int index_8p5_3p5  = names.triggerIndex("HLT_Mu8p5_IP3p5");
-  //unsigned int index_9_4      = names.triggerIndex("HLT_Mu9_IP4");
-  //unsigned int index_9_5      = names.triggerIndex("HLT_Mu9_IP5");
-  //unsigned int index_10p5_3p5 = names.triggerIndex("HLT_Mu10p5_IP3p5");
-  //unsigned int index_12_6     = names.triggerIndex("HLT_Mu12_IP6");
- 
-  //std::cout << (index_7_4_p0 < triggerBits->size())  << "and" <<      (triggerBits->accept(index_7_4_p0)) << std::endl;
-  //std::cout << (index_7_4_p1 < triggerBits->size())  << "and" <<     (triggerBits->accept(index_7_4_p1)) << std::endl;
-  //std::cout << (index_7_4_p2 < triggerBits->size())  << "and" <<    (triggerBits->accept(index_7_4_p2)) << std::endl;
-  //std::cout << (index_7_4_p3 < triggerBits->size())  << "and" <<     (triggerBits->accept(index_7_4_p3)) << std::endl;
-  //std::cout << (index_7_4_p4 < triggerBits->size())  << "and" <<    (triggerBits->accept(index_7_4_p4)) << std::endl;
  
   //default is false  
   bool pass_7_4_p0_path      = false;
@@ -331,9 +295,6 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
   //only continue when we the event passes the HLT_Mu7_IP4
   if (pass_7_4_p0_path || pass_7_4_p1_path || pass_7_4_p2_path || pass_7_4_p3_path || pass_7_4_p4_path){
  
-  //std::cout << "i pass the pathes" << std::endl;
- 
-  //std::cout<<"found trigger!" << std::endl;
   // define vectors of ints of length muons->size(), all values set to 0
   std::vector<int> isTriggerMuon(muons->size(), 0);
  
@@ -348,9 +309,7 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
 
     if (!muSelection_(*muPtr)) continue;
  
- 
     //check if the pat muon is matched to some trigger object (by using the function triggerObjectMatchByPath()
- 
     // initialize start values
     float drMuonTrgObj = -1.;
     int muonIdx        = -1;
@@ -425,7 +384,8 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
           edm::Ptr<pat::PackedCandidate> k1Ptr;
           if (k1Idx < pcand->size()) k1Ptr = edm::Ptr<pat::PackedCandidate>(pcand, k1Idx); //normal tracks
           else k1Ptr = edm::Ptr<pat::PackedCandidate>(tracksLost, k1Idx - pcand->size());  //lost tracks
-      
+    
+           // hadronic selections  
           if (!hadSelection_(*k1Ptr)) continue; 
       
           float muonK1dR = reco::deltaR(*k1Ptr,*muPtr);
@@ -449,6 +409,7 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
           if (k2Idx < pcand->size()) k2Ptr = edm::Ptr<pat::PackedCandidate>(pcand, k2Idx); //normal tracks
           else k2Ptr = edm::Ptr<pat::PackedCandidate>(tracksLost, k2Idx - pcand->size());  //lost tracks
         
+          // hadronic selections  
           if(!hadSelection_(*k2Ptr)) continue;
       
           float muonK2dR = reco::deltaR(*k2Ptr,*muPtr);
@@ -472,7 +433,7 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
             if (piIdx < pcand->size()) piPtr = edm::Ptr<pat::PackedCandidate>(pcand, piIdx); //normal tracks
             else piPtr = edm::Ptr<pat::PackedCandidate>(tracksLost, piIdx - pcand->size());  //lost tracks
       
-            // if this pion does not pass the selection, jump to the next!
+            // hadronic selections  
             if(!hadSelection_(*piPtr)) continue;
       
             float muonPidR = reco::deltaR(*piPtr,*muPtr);
@@ -487,7 +448,6 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
             //////////////////////////////////////////////////
             // Build Phi resonance                          //
             //////////////////////////////////////////////////
-      
       
             //define a composite candidate pair 
             pat::CompositeCandidate kk;
@@ -512,10 +472,7 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
       
             //only continue when they build a ds resonance, allow 50MeV:
             if (fabs(phiPi.mass() - dsMass_) > dsMassAllowance_) continue;
-      
-            //std::cout << "we passed the ds resonance" << std::endl; 
             phiPi.setCharge(kk.charge() + piPtr->charge());
-            //std::cout << "found ds resonance" << std::endl;
       
             //////////////////////////////////////////////////
             // Build Bs resonance                           //
@@ -591,7 +548,7 @@ void BsToDsPhiKKPiMuBuilder::produce(edm::StreamID, edm::Event &iEvent, const ed
             //////////////////////////////////
 
             KinVtxFitter easyFitter(
-            {ttK1, ttK2, getTransientTrack(piTrackCorr)},
+            {ttK1, ttK2, ttPi},
             {kMass, kMass, piMass},
             {kMassSigma,kMassSigma,piMassSigma}
             );
